@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from helpers import *
-from playwrighter import *
+from helpers import get_text, handle_disclaimer
+from playwrighter import Playwrighter
 # ------------------------------------------------
 
 

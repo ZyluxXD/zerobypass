@@ -1,4 +1,13 @@
-from __init__ import *
+import os
+import sys
+import time
+
+import klembord
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.prompt import Confirm
+
+from config import console
 
 
 # ------------------------------------------------
