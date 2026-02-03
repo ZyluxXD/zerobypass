@@ -38,7 +38,7 @@ class Playwrighter:
     @staticmethod
     def _check_for_install():
         # Define the command
-        cmd = [sys.executable, "-m", "playwright", "install"]
+        cmd = [sys.executable, "-m", "playwright", "install", "chromium"]
 
         try:
             # Start the status spinner
