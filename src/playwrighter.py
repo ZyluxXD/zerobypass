@@ -18,13 +18,13 @@ class Playwrighter:
             with console.status("[bold blue]Launching Playwright browser...", spinner="earth"):
                 data_dir = os.path.join(os.path.expanduser("~"), "." + pathlib.Path(__file__).parent.parent.name)
                 self.playwright = sync_playwright().start()
-                self.context = self.playwright.chromium.launch_persistent_context(user_data_dir=data_dir,
+                self.browser = self.playwright.chromium.launch_persistent_context(user_data_dir=data_dir,
                                                                                   headless=False)
                 # TODO fix: the handler doesnt work
-                self.context.on("close", self._user_closed_handler)
-                self.page = self.context.new_page()
+                self.browser.on("close", self._user_closed_handler)
+                self.page = self.browser.new_page()
                 self.page.goto("https://docs.google.com/")
-            self.page.pause()
+                # this would normally close immediately; however, there is more code executing in main.py so it doesn't close
         except Exception as e:
             console.print(f"[red]Error initializing Playwright: {e}[/red]")
             sys.exit(1)
@@ -33,7 +33,7 @@ class Playwrighter:
         self.page.goto(url)
 
     def close(self):
-        self.context.close()
+        self.browser.close()
         self.playwright.stop()
 
     @staticmethod
@@ -67,5 +67,5 @@ class Playwrighter:
     @staticmethod
     def _user_closed_handler(context):
         context.close()
-        console.print("[bold red]Browser context closed.[/bold red]")
+        console.print("[bold red]Browser window closed.[/bold red]")
         sys.exit(1)

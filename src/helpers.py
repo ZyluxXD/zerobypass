@@ -2,9 +2,11 @@
 import os
 import sys
 import time
-from Xlib.error import DisplayNameError
+
 import klembord
+from Xlib import display, error
 from rich.markdown import Markdown
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -13,10 +15,20 @@ from config import console
 
 # ------------------------------------------------
 def can_output_graphics():
-    # ok um i said this didn't work and that was true because I never implemented it lol
-    if not any(var in os.environ for var in ['DISPLAY', 'WAYLAND_DISPLAY']):
-        console.print("[red]No graphical display detected. This needs graphical output to work.[/red]")
-        sys.exit(0)
+    if sys.platform.startswith("win"):
+        # X11 displays are not available on Windows by default, so skip checking
+        # If they don't have a display for some reason IDK why they would download this on a headless Windows environment lol
+        return True
+    try:
+        display.Display()
+    except (error.DisplayConnectionError, error.DisplayNameError):
+        console.print(
+            "[red]Unable to connect to graphical display. Press Enter to continue anyway. Type anything else to exit.[/red]")
+        answer = input()
+        if answer.strip():
+            sys.exit(1)
+    return True
+
 
 
 def handle_disclaimer():
@@ -24,7 +36,7 @@ def handle_disclaimer():
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     disclaimer = Markdown(content)
-    panel = Panel(disclaimer, title="⚠ Disclaimer ⚠", border_style="red")
+    panel = Panel(disclaimer, title="Disclaimer", border_style="red")
     console.print(panel)
     accepted = Confirm.ask("Do you accept this disclaimer?", choices=["y", "n"])
 
@@ -37,19 +49,30 @@ def handle_disclaimer():
 
 # I cooked on this one :)
 def get_text():
-    with console.status("[bold]Copy[/bold] the text you want to use onto your clipboard [dim](CTRL-V)[/dim]",
-                        spinner="bouncingBar"):
-        try:
-            last_paste = klembord.get_with_rich_text()
-            while True:
-                current_paste = klembord.get_with_rich_text()
-                if current_paste != last_paste:
-                    break
-                time.sleep(0.1)  # small delay because yes
-        except DisplayNameError:
-            console.print("[yellow]Clipboard access failed. Falling back to manual input.[/yellow]")
-            current_paste = console.input("Paste text here and press Enter:\n")
-    console.print(Panel.fit(f"[green]Text captured from clipboard:[/green]\n\n{current_paste}", title="✔ Text Captured",
-                            border_style="green"))
+    while True:
+        with console.status("[bold]Copy[/bold] the text you want to use onto your clipboard [dim](CTRL-C)[/dim]",
+                            spinner="bouncingBar"):
+            try:
+                last_paste = klembord.get_with_rich_text()
+                while True:
+                    current_paste = klembord.get_with_rich_text()
+                    if current_paste != last_paste:
+                        break
+                    time.sleep(0.1)  # small delay because yes
+            except (error.DisplayConnectionError, error.DisplayNameError):
+                console.print("[yellow]Clipboard access failed. Falling back to manual input.[/yellow]")
+                current_paste = (console.input("Paste text here and press Enter:\n"), "")
+        # Escape clipboard text to avoid Rich markup errors if user text contains markup-like tags.
+        # not to be confused with the library Rich (I mean Rich text, HTML, etc.)
+        safe_plain = escape(current_paste[0]).strip()
+        safe_rich = escape(current_paste[1].strip()) if current_paste[1] else None
+        # show a 1/4 preview of the text in rich HTML format
+        rich_preview_len = len(safe_plain) // 4
+        preview = f"{safe_plain}{'\n [dim]' + safe_rich[:rich_preview_len] + '...[/dim]' if safe_rich else ''}"
+        console.print(Panel.fit(preview, title="Text Captured", border_style="green"))
+        confirm = Confirm.ask(f"Do you wish to continue with this capture or re-capture?", default=True,
+                              choices=["y", "n"])
+        if confirm:
+            break
 
     return current_paste
