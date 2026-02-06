@@ -8,7 +8,8 @@ from Xlib import display, error
 from rich.markdown import Markdown
 from rich.markup import escape
 from rich.panel import Panel
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
+
 from .config import console
 
 
@@ -22,7 +23,7 @@ def can_output_graphics():
         display.Display()
     except (error.DisplayConnectionError, error.DisplayNameError):
         with console.status("[red]Unable to connect to graphical display. Press [bold]Enter[/bold] to continue anyway. Press [bold]CTRL-C[/bold] to exit.[/red]", spinner="star"):
-            console.input()
+            Prompt.ask(password=True)
     return True
 
 def handle_disclaimer():
@@ -73,5 +74,8 @@ def get_text():
     return current_paste
 
 def wait_for_navigate():
-    with console.status("[bold] Waiting for navigation... [/bold] [dim] Press Enter to continue. [/dim]", spinner="simpleDotsScrolling"):
-        console.input()
+    console.print("[bold]Now navigate to the page you want to use, in the Playwright browser.[/bold]")
+    console.print("[dim]Click into the input where you want the text to appear, then return here.[/dim]")
+    with console.status("[bold] Waiting for navigation and focus... [/bold] [dim]Press Enter to start typing.[/dim]",
+                        spinner="simpleDotsScrolling"):
+        Prompt.ask(password=True)  # hack for entering

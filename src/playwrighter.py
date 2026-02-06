@@ -18,12 +18,13 @@ class Playwrighter:
             with console.status("[bold blue]Launching Playwright browser...", spinner="earth"):
                 data_dir = os.path.join(os.path.expanduser("~"), "." + pathlib.Path(__file__).parent.parent.name)
                 self.playwright = sync_playwright().start()
-                self.browser = self.playwright.chromium.launch_persistent_context(user_data_dir=data_dir,
-                                                                                  headless=False)
+                self.browser = self.playwright.chromium.launch_persistent_context(
+                    user_data_dir=data_dir,
+                    headless=False
+                )
                 # TODO fix: the handler doesnt work
                 self.browser.on("close", self._user_closed_handler)
-                self.page = self.browser.new_page()
-                self.page.goto("https://docs.google.com/")
+                self._ensure_page_exists()
                 # this would normally close immediately; however, there is more code executing in main.py so it doesn't close
             console.print("[bold]✔ Playwright browser launched successfully[/bold]")
         except Exception as e:
@@ -31,11 +32,37 @@ class Playwrighter:
             sys.exit(1)
 
     def navigate(self, url):
-        self.page.goto(url)
+        page = self.current_page
+        page.goto(url)
+        return page
 
     def close(self):
         self.browser.close()
         self.playwright.stop()
+
+    def _ensure_page_exists(self):
+        if not self.browser.pages:
+            self.browser.new_page()
+
+    @property
+    def current_page(self):
+        """
+        Returns the most recent page so typing happens on the tab the user is viewing.
+        """
+        self._ensure_page_exists()
+
+        # Prefer the most recent non-closed page; fall back to a new one.
+        page = next((p for p in reversed(self.browser.pages) if not p.is_closed()), None)
+        if page is None:
+            page = self.browser.new_page()
+
+        try:
+            page.bring_to_front()
+        except Exception:
+            # If it was closed between checks, open a fresh page.
+            page = self.browser.new_page()
+
+        return page
 
     @staticmethod
     def _check_for_install():
