@@ -9,8 +9,7 @@ from rich.markdown import Markdown
 from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm
-
-from config import console
+from .config import console
 
 
 # ------------------------------------------------
@@ -22,14 +21,9 @@ def can_output_graphics():
     try:
         display.Display()
     except (error.DisplayConnectionError, error.DisplayNameError):
-        console.print(
-            "[red]Unable to connect to graphical display. Press Enter to continue anyway. Type anything else to exit.[/red]")
-        answer = input()
-        if answer.strip():
-            sys.exit(1)
+        with console.status("[red]Unable to connect to graphical display. Press [bold]Enter[/bold] to continue anyway. Press [bold]CTRL-C[/bold] to exit.[/red]", spinner="star"):
+            console.input()
     return True
-
-
 
 def handle_disclaimer():
     filepath = os.path.join(os.path.dirname(__file__), '../DISCLAIMER.md')
@@ -50,18 +44,19 @@ def handle_disclaimer():
 # I cooked on this one :)
 def get_text():
     while True:
-        with console.status("[bold]Copy[/bold] the text you want to use onto your clipboard [dim](CTRL-C)[/dim]",
+
+        try:
+            with console.status("[bold]Copy[/bold] the text you want to use onto your clipboard [dim](CTRL-C)[/dim]",
                             spinner="bouncingBar"):
-            try:
                 last_paste = klembord.get_with_rich_text()
                 while True:
                     current_paste = klembord.get_with_rich_text()
                     if current_paste != last_paste:
                         break
                     time.sleep(0.1)  # small delay because yes
-            except (error.DisplayConnectionError, error.DisplayNameError):
-                console.print("[yellow]Clipboard access failed. Falling back to manual input.[/yellow]")
-                current_paste = (console.input("Paste text here and press Enter:\n"), "")
+        except (error.DisplayConnectionError, error.DisplayNameError):
+            console.print("[yellow]Clipboard access failed. Falling back to manual input.[/yellow]")
+            current_paste = (console.input("Paste text here and press Enter:\n"), "")
         # Escape clipboard text to avoid Rich markup errors if user text contains markup-like tags.
         # not to be confused with the library Rich (I mean Rich text, HTML, etc.)
         safe_plain = escape(current_paste[0]).strip()
@@ -76,3 +71,7 @@ def get_text():
             break
 
     return current_paste
+
+def wait_for_navigate():
+    with console.status("[bold] Waiting for navigation... [/bold] [dim] Press Enter to continue. [/dim]", spinner="simpleDotsScrolling"):
+        console.input()

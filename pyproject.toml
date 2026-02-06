@@ -9,5 +9,13 @@ dependencies = [
     "pytest-playwright>=0.7.2",
     "rich>=14.3.2",
     "setuptools>=80.10.2",
-    "python-xlib>=0.33",
 ]
+[project.scripts]
+zerobypass = "src.__main__:main"
+
+[build-system]
+requires = ["setuptools>=80.10.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]

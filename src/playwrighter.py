@@ -8,7 +8,7 @@ import time
 from playwright.sync_api import sync_playwright
 from rich.panel import Panel
 
-from config import console
+from .config import console
 
 
 class Playwrighter:
@@ -25,6 +25,7 @@ class Playwrighter:
                 self.page = self.browser.new_page()
                 self.page.goto("https://docs.google.com/")
                 # this would normally close immediately; however, there is more code executing in main.py so it doesn't close
+            console.print("[bold]✔ Playwright browser launched successfully[/bold]")
         except Exception as e:
             console.print(f"[red]Error initializing Playwright: {e}[/red]")
             sys.exit(1)
