@@ -13,9 +13,14 @@ ___
 
 ## Quick start
 
-1) Run `pip install zerobypass` (Or `git clone https://github.com/Magic-Goose-Software-Co/zerobypass.git`)
-2) (Optional) Preinstall the browser bundle: `python -m playwright install --with-deps chromium`
-3) Run: `zerobypass` (or `python -m src` from the repo).
+1) Install using either method:
+2) 
+3) `pipx install zerobypass` (recommended)
+4) `pip install zerobypass`
+5) `git clone https://github.com/Magic-Goose-Software-Co/zerobypass.git`
+6) 
+7) (Optional) Preinstall the browser bundle: `python -m playwright install --with-deps chromium`
+8) Run: `zerobypass` (or `python -m src` from the repo).
 
 ___
 
