@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # Suppress Warning
 import warnings
-
-from .helpers import wait_till_exit
-
 warnings.filterwarnings("ignore", category=UserWarning, module='stopit')
+from .helpers import wait_till_exit
 # ------------------------------------------------
 
 from .algorithm import Algorithm
