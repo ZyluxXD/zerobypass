@@ -9,6 +9,7 @@ dependencies = [
     "pytest-playwright>=0.7.2",
     "python-xlib>=0.26",
     "rich>=14.3.2",
+    "setuptools>=82.0.0"
 ]
 [project.scripts]
 zerobypass = "src.__main__:main"
