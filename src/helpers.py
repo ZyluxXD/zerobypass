@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 import sys
 import time
 
@@ -10,7 +9,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 
-from .config import console
+from .config import console, disclaimer
 
 
 # ------------------------------------------------
@@ -27,11 +26,8 @@ def can_output_graphics():
     return True
 
 def handle_disclaimer():
-    filepath = os.path.join(os.path.dirname(__file__), '../DISCLAIMER.md')
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
-    disclaimer = Markdown(content)
-    panel = Panel(disclaimer, title="Disclaimer", border_style="red")
+    content = Markdown(disclaimer)
+    panel = Panel(content, title="Disclaimer", border_style="red")
     console.print(panel)
     accepted = Confirm.ask("Do you accept this disclaimer?", choices=["y", "n"])
 

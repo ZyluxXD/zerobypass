@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import random
 import string
+import sys
 import time
 from dataclasses import dataclass
 from typing import Optional, List, Tuple
@@ -175,6 +176,7 @@ class Algorithm:
 
         except KeyboardInterrupt:
             console.print("[yellow]Typing interrupted[/yellow]")
+            sys.exit(1)
         except Exception as e:
             console.print(f"[red]Error: {e}[/red]")
             raise
