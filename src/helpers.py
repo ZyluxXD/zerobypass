@@ -49,6 +49,7 @@ def get_text():
         try:
             with console.status("[bold]Copy[/bold] the text you want to use onto your clipboard [dim](CTRL-C)[/dim]",
                             spinner="bouncingBar"):
+                klembord.clear()  # avoid not copying due to copied content matching newly copied content
                 last_paste = klembord.get_with_rich_text()
                 while True:
                     current_paste = klembord.get_with_rich_text()
@@ -79,3 +80,10 @@ def wait_for_navigate():
     with console.status("[bold] Waiting for navigation and focus... [/bold] [dim]Press Enter to start typing.[/dim]",
                         spinner="simpleDotsScrolling"):
         Prompt.ask(password=True)  # hack for entering
+
+
+def wait_till_exit():
+    with console.status(
+            "[bold] The script will continue to run to ensure the browser doesn't close. Press enter to exit.[/bold]",
+            spinner="simpleDotsScrolling"):
+        Prompt.ask(password=True)

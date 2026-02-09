@@ -12,6 +12,7 @@ global pw
 def main():
     global pw
     try:
+        pw = None
         can_output_graphics()
         handle_disclaimer()
         captured_text, _ = get_text()
