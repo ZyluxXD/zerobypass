@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # Suppress Warning
 import warnings
+
+from .helpers import wait_till_exit
+
 warnings.filterwarnings("ignore", category=UserWarning, module='stopit')
 # ------------------------------------------------
 
@@ -17,8 +20,9 @@ def main():
         handle_disclaimer()
         captured_text, _ = get_text()
         pw = Playwrighter()
-        wait_for_navigate()  # TODO: temp placeholder until the actual function is made. For the actual function, it should create the plan while waiting for the user to navigate in the browser. It should also have a cool ui.
+        wait_for_navigate()
         Algorithm(pw.current_page).type_text(captured_text)
+        wait_till_exit()
     except KeyboardInterrupt:
         if pw:
             pw.close()

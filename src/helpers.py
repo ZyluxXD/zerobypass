@@ -85,5 +85,5 @@ def wait_for_navigate():
 def wait_till_exit():
     with console.status(
             "[bold] The script will continue to run to ensure the browser doesn't close. Press enter to exit.[/bold]",
-            spinner="simpleDotsScrolling"):
+            spinner="hamburger"):
         Prompt.ask(password=True)

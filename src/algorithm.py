@@ -1,153 +1,205 @@
 #!/usr/bin/env python3
 import random
 import string
+import time
+from dataclasses import dataclass
+from typing import Optional, List, Tuple
 
-class Algorithm:
-    def __init__(
-            self,
-            page,
-            *,
-            min_delay: float = 0.035,
-            max_delay: float = 0.1,
-            punctuation_pause: tuple[float, float] = (0.25, 0.65),
-            backtrack_chance: float = 0.015,
-            steps_till_backtrack: tuple[int, int] = (2, 8)
-    ):
-        self.page = page
-        self.min_delay = min_delay
-        self.max_delay = max_delay
-        self.punctuation_pause = punctuation_pause
-        self.backtrack_chance = backtrack_chance
-        self.steps_till_backtrack = steps_till_backtrack
-        self.typo_pending: tuple[
-                               str, int, int, list] | None = None  # (correct_char, chars_until_correction, backtrack_count, typo_backlog)
+from .config import console
 
-    def type_text(self, text: str):
-        from .config import console  # lazy import to avoid circulars
-        from .__main__ import pw
-        keyboard = self.page.keyboard
-        total_chars = sum(1 for c in text if c != "\r")
-        typed = 0
-        try:
 
-            with console.status(f"[bold blue]Currently typing, progress: {0:.2f}%[/bold blue]",
-                                spinner="bouncingBall") as status:
-                for idx, raw_char in enumerate(text):
-                    if raw_char == "\r":
-                        continue  # normalize Windows newlines
+# --- Configuration ---
+@dataclass
+class Config:
+    """Holds all tunable parameters for the typing behavior."""
+    min_delay: float = 0.035
+    max_delay: float = 0.1
+    punctuation_pause: Tuple[float, float] = (0.25, 0.65)
+    backtrack_chance: float = 0.015
+    steps_till_backtrack: Tuple[int, int] = (2, 8)
 
-                    char = "\n" if raw_char == "\n" else raw_char
+    # New: Allow enabling/disabling features easily
+    enable_typos: bool = True
+    enable_jitter: bool = True
 
-                    # Check if we need to correct a pending typo
-                    if self.typo_pending:
-                        correct_char, chars_until_correction, backtrack_count, typo_backlog = self.typo_pending
-                        if chars_until_correction <= 0:
-                            self._correct_typo(keyboard, correct_char, backtrack_count, typo_backlog)
-                            self.typo_pending = None
-                        else:
-                            typo_backlog.append(char)
-                            self.typo_pending = (correct_char, chars_until_correction - 1, backtrack_count,
-                                                 typo_backlog)
-                    
-                    delay = self._next_delay(char)
 
-                    # Decide if we should make a typo on this character
-                    if self._should_backtrack(idx, char) and not self.typo_pending:
-                        # Create and type a typo instead of the correct character
-                        typo_char = self._create_typo(char)
-                        self._send_char(keyboard, typo_char)
-                        self._sleep(delay)
-                        # Schedule correction after 1-3 more characters
-                        chars_until_correction = random.randint(*self.steps_till_backtrack)
-                        self.typo_pending = (char, chars_until_correction, chars_until_correction + 1,
-                                             [])  # I think it needs + 1 to work right
-                    else:
-                        # Type the character normally
-                        self._send_char(keyboard, char)
-                        self._sleep(delay)
-                    
-                    typed += 1
-                    percent = (typed / total_chars) * 100 if total_chars else 100.0
-                    status.update(f"[bold blue]Currently typing, progress: {percent:.2f}%[/bold blue]")
+# --- Delay Logic  ---
+class Delay:
+    """Handles the mathematics of human-like pauses."""
 
-                # If there's still a pending typo at the end, correct it
-                if self.typo_pending:
-                    correct_char, chars_until_correction, backtrack_count, typo_backlog = self.typo_pending
-                    self._correct_typo(keyboard, correct_char, backtrack_count, typo_backlog)
-                    self.typo_pending = None
-                    
-            console.print("[bold green]✔ Finished typing[/bold green]")
-        except KeyboardInterrupt:
-            console.print("[yellow]Typing interrupted by user[/yellow]")
-            pw.close()
-            return
+    def __init__(self, config: Config):
+        self.config = config
 
-        except Exception as exc:
-            console.print(f"[red]Typing failed: {exc}[/red]")
-            raise
+    def get_delay(self, char: str) -> float:
+        if not self.config.enable_jitter:
+            return self.config.min_delay
 
-    @staticmethod
-    def _send_char(keyboard, char: str):
-        if char == "\n":
-            keyboard.press("Enter")
-        else:
-            keyboard.insert_text(char)
+        delay = random.uniform(self.config.min_delay, self.config.max_delay)
 
-    def _next_delay(self, char: str) -> float:
-        # Base delay with jitter.
-
-        delay = random.uniform(self.min_delay, self.max_delay)
-
-        # Slightly longer after punctuation or newlines.
+        # Longer pauses for punctuation
         if char in {".", "?", "!", ",", ";", ":"}:
-            delay += random.uniform(*self.punctuation_pause)
+            delay += random.uniform(*self.config.punctuation_pause)
         elif char == "\n":
-            delay += random.uniform(*self.punctuation_pause)
+            delay += random.uniform(*self.config.punctuation_pause)
         elif char == " ":
-            # Rare micro-pause between words.
             delay += random.uniform(0, 0.08)
 
         return delay
 
-    def _should_backtrack(self, idx: int, char: str) -> bool:
-        # Do not backtrack immediately at the start or on whitespace/newlines.
-
-        if idx < 3 or char.isspace():
-            return False
-        return random.random() < self.backtrack_chance
-
-    def _short_pause(self) -> float:
-
-        return random.uniform(self.min_delay * 0.5, self.min_delay * 1.5)
-
-    def _correct_typo(self, keyboard, correct_char: str, backtrack: int, typo_backlog: list[str]):
-        for _ in range(backtrack):
-            keyboard.press("Backspace")
-            self._sleep(self._short_pause() * 2.5)
-        self._send_char(keyboard, correct_char)
-        self._sleep(self._short_pause())
-        for char in typo_backlog:
-            delay = self._next_delay(char)
-            self._send_char(keyboard, char)
-            self._sleep(delay)
+    def get_short_pause(self) -> float:
+        return random.uniform(self.config.min_delay * 0.5, self.config.min_delay * 1.5)
 
     @staticmethod
-    def _create_typo(letter: str) -> str:
-        if letter.isalpha():
-            # Match case of original letter
-            if letter.isupper():
-                # Pick a different uppercase letter
-                choices = [c for c in string.ascii_uppercase if c != letter]
-                return random.choice(choices) if choices else random.choice(string.ascii_uppercase)
-            else:
-                # Pick a different lowercase letter
-                choices = [c for c in string.ascii_lowercase if c != letter]
-                return random.choice(choices) if choices else random.choice(string.ascii_lowercase)
-        else:
-            # For non-alphabetic characters, just return a random letter
-            return random.choice(string.ascii_lowercase)
-    @staticmethod
-    def _sleep(duration: float):
-        import time
-
+    def sleep(duration: float):
         time.sleep(duration)
+
+
+# --- Module 3: Typo Logic (The "Brain" of errors) ---
+class Typo:
+    """
+    Manages the state of pending typos.
+    Decides when to make a mistake and how to fix it.
+    """
+
+    def __init__(self, config: Config):
+        self.config = config
+        # State tracking
+        self.pending_correction: Optional[str] = None  # The char we SHOULD have typed
+        self.steps_remaining: int = 0
+        self.backtrack_amount: int = 0
+        self.backlog: List[str] = []
+
+    @property
+    def is_correction_pending(self) -> bool:
+        return self.pending_correction is not None
+
+    def should_start_typo(self, char: str, index: int) -> bool:
+        """Decides if a new typo sequence should start."""
+        if not self.config.enable_typos or self.is_correction_pending:
+            return False
+        # Don't typo on spaces, newlines, or very early in the text
+        if index < 3 or char.isspace():
+            return False
+        return random.random() < self.config.backtrack_chance
+
+    def generate_typo_char(self, char: str, register=True) -> str:
+        """Returns a plausible wrong character."""
+        # TODO: Use QWERTY proximity here instead of random
+        if register:
+            self.register_typo(char)
+        if char.isalpha():
+            if char.isupper():
+                pool = [c for c in string.ascii_uppercase if c != char]
+                return random.choice(pool)
+            else:
+                pool = [c for c in string.ascii_lowercase if c != char]
+                return random.choice(pool)
+        return random.choice(string.ascii_lowercase)
+
+    def register_typo(self, correct_char: str):
+        """Sets up the state machine to correct this typo later."""
+        steps = random.randint(*self.config.steps_till_backtrack)
+        self.pending_correction = correct_char
+        self.steps_remaining = steps
+        self.backtrack_amount = steps + 1
+        self.backlog = []
+
+    def tick(self, char: str):
+        """Decrements the counter until correction."""
+        if self.is_correction_pending:
+            self.backlog.append(char)
+            self.steps_remaining -= 1
+
+    def ready_to_fix(self) -> bool:
+        return self.is_correction_pending and self.steps_remaining <= 0
+
+    def reset(self):
+        """Clears state after a fix."""
+        self.pending_correction = None
+        self.steps_remaining = 0
+        self.backtrack_amount = 0
+        self.backlog = []
+
+
+# --- orchestrator class ---
+class Algorithm:
+    # TODO add: add a way to use rich text
+    def __init__(self, page, config: Optional[Config] = None):
+        self.page = page
+        self.config = config or Config()
+        # Composition: Use the specialized managers
+        self.timer = Delay(self.config)
+        self.typos = Typo(self.config)
+
+    def type_text(self, text: str):
+        keyboard = self.page.keyboard
+        total_chars = len(text)
+        typed_count = 0
+
+        try:
+            with console.status(f"[bold blue]Currently typing, progress: {0:.2f}%[bold blue]",
+                                spinner="bouncingBall") as status:
+
+                for idx, raw_char in enumerate(text):
+                    if raw_char == "\r": continue
+                    char = "\n" if raw_char == "\n" else raw_char
+
+                    # 1. Check if we need to fix a previous error
+                    if self.typos.ready_to_fix():
+                        self._perform_correction(keyboard)
+                    elif self.typos.is_correction_pending:
+                        self.typos.tick(char)
+
+                    # 2. Calculate delay for this specific char
+                    delay = self.timer.get_delay(char)
+
+                    # 3. Decide: Type correctly or make a mistake?
+                    if self.typos.should_start_typo(char, idx):
+                        # make a typo & register (gen typo auto registers)
+                        typo_char = self.typos.generate_typo_char(char)
+                        self._send_char(keyboard, typo_char, delay)
+                    else:
+                        # Normal typing
+                        self._send_char(keyboard, char, delay)
+
+                    # Update UI
+                    typed_count += 1
+                    percent = (typed_count / total_chars) * 100
+                    status.update(f"[bold blue]Currently typing, progress: {percent:.2f}%[/bold blue]")
+
+                # Final cleanup: If a typo is still pending at the end of the string
+                if self.typos.is_correction_pending:
+                    self._perform_correction(keyboard)
+
+            console.print("[bold green]✔ Finished typing[/bold green]")
+
+        except KeyboardInterrupt:
+            console.print("[yellow]Typing interrupted[/yellow]")
+        except Exception as e:
+            console.print(f"[red]Error: {e}[/red]")
+            raise
+
+    def _perform_correction(self, keyboard):
+        """Executes the physical backspacing and re-typing."""
+        # Backspace
+        for _ in range(self.typos.backtrack_amount):
+            keyboard.press("Backspace")
+            self.timer.sleep(self.timer.get_short_pause() * 2.5)
+
+        # Type the character that was originally missed
+        self._send_char(keyboard, self.typos.pending_correction, self.timer.get_short_pause())
+
+        # Re-type the buffer (characters typed while we didn't notice the error)
+        for buffered_char in self.typos.backlog:
+            delay = self.timer.get_delay(buffered_char)
+            self._send_char(keyboard, buffered_char, delay)
+
+        self.typos.reset()
+
+    def _send_char(self, keyboard, char: str, delay=None):
+        if char == "\n":
+            keyboard.press("Enter")
+        else:
+            keyboard.insert_text(char)
+        if delay is not None:
+            self.timer.sleep(delay)

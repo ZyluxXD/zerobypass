@@ -18,7 +18,7 @@ class Playwrighter:
             with console.status("[bold blue]Launching Playwright browser...", spinner="earth"):
                 data_dir = os.path.join(os.path.expanduser("~"), "." + pathlib.Path(__file__).parent.parent.name)
                 self.playwright = sync_playwright().start()
-                self.browser = self.playwright.chromium.launch_persistent_context(
+                self.browser = self.playwright.chromium.launch_persistent_context( # TODO fix: launch with user existing profile to evade bot detection
                     user_data_dir=data_dir,
                     headless=False
                 )
@@ -52,6 +52,7 @@ class Playwrighter:
         self._ensure_page_exists()
 
         # Prefer the most recent non-closed page; fall back to a new one.
+        # TODO fix: if the firs tab still exists it uses that instead
         page = next((p for p in reversed(self.browser.pages) if not p.is_closed()), None)
         if page is None:
             page = self.browser.new_page()
