@@ -173,7 +173,7 @@ class Algorithm:
                     self._perform_correction(keyboard)
 
             console.print("[bold green]✔ Finished typing[/bold green]")
-
+            # TODO add: add a better finished prompt with statistics like time
         except KeyboardInterrupt:
             console.print("[yellow]Typing interrupted[/yellow]")
             sys.exit(1)

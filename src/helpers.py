@@ -57,7 +57,7 @@ def get_text():
             current_paste = (console.input("Paste text here and press Enter:\n"), "")
         # Escape clipboard text to avoid Rich markup errors if user text contains markup-like tags.
         # not to be confused with the library Rich (I mean Rich text, HTML, etc.)
-        safe_plain = escape(current_paste[0]).strip()
+        safe_plain = current_paste[0] if current_paste and current_paste[0] else ""
         safe_rich = escape(current_paste[1].strip()) if current_paste[1] else None
         # show a 1/4 preview of the text in rich HTML format
         rich_preview_len = len(safe_plain) // 4
