@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-import os
 import pathlib
 import subprocess
 import sys
 import time
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Error
 from rich.panel import Panel
 
-from .config import console
+from .config import console, args
 
 
 class Playwrighter:
@@ -16,9 +15,12 @@ class Playwrighter:
         self._check_for_install()
         try:
             with console.status("[bold blue]Launching Playwright browser...", spinner="earth"):
-                data_dir = os.path.join(os.path.expanduser("~"), "." + pathlib.Path(__file__).parent.parent.name)
+                if args.browser_data_dir:
+                    data_dir = args.browser_data_dir
+                else:
+                    data_dir = str(pathlib.Path.home() / ("." + pathlib.Path(__file__).parent.name))
                 self.playwright = sync_playwright().start()
-                self.browser = self.playwright.chromium.launch_persistent_context( # TODO fix: launch with user existing profile to evade bot detection
+                self.browser = self.playwright.chromium.launch_persistent_context(
                     user_data_dir=data_dir,
                     headless=False
                 )
@@ -59,7 +61,7 @@ class Playwrighter:
 
         try:
             page.bring_to_front()
-        except Exception:
+        except Error:
             # If it was closed between checks, open a fresh page.
             page = self.browser.new_page()
 

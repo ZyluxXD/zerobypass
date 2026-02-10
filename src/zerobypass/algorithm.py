@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import random
 import string
-import sys
 import time
 from dataclasses import dataclass
 from typing import Optional, List, Tuple
@@ -17,16 +16,16 @@ class Config:
     max_delay: float = 0.1
     punctuation_pause: Tuple[float, float] = (0.25, 0.65)
     backtrack_chance: float = 0.015
-    steps_till_backtrack: Tuple[int, int] = (2, 8)
+    steps_till_backtrack: Tuple[int, int] = (2, 10)
 
-    # New: Allow enabling/disabling features easily
+    # feature config
     enable_typos: bool = True
     enable_jitter: bool = True
 
 
 # --- Delay Logic  ---
 class Delay:
-    """Handles the mathematics of human-like pauses."""
+    """math"""
 
     def __init__(self, config: Config):
         self.config = config
@@ -57,10 +56,7 @@ class Delay:
 
 # --- Module 3: Typo Logic (The "Brain" of errors) ---
 class Typo:
-    """
-    Manages the state of pending typos.
-    Decides when to make a mistake and how to fix it.
-    """
+    """typos"""
 
     def __init__(self, config: Config):
         self.config = config
@@ -84,18 +80,26 @@ class Typo:
         return random.random() < self.config.backtrack_chance
 
     def generate_typo_char(self, char: str, register=True) -> str:
-        """Returns a plausible wrong character."""
-        # TODO: Use QWERTY proximity here instead of random
+        # register if needed
         if register:
             self.register_typo(char)
-        if char.isalpha():
-            if char.isupper():
-                pool = [c for c in string.ascii_uppercase if c != char]
-                return random.choice(pool)
-            else:
-                pool = [c for c in string.ascii_lowercase if c != char]
-                return random.choice(pool)
-        return random.choice(string.ascii_lowercase)
+
+        # lower the char for it to work
+        low_char = char.lower()
+
+        if low_char in self.QWERTY:
+            neighbors = self.QWERTY[low_char]
+
+            # list comprehension
+            pool = [n.upper() if char.isupper() else n for n in neighbors]
+
+            return random.choice(pool)
+
+        # fallback
+        else:
+            pool = [c for c in string.ascii_lowercase if c != low_char]
+            typo = random.choice(pool)
+            return typo.upper() if char.isupper() else typo
 
     def register_typo(self, correct_char: str):
         """Sets up the state machine to correct this typo later."""
@@ -121,6 +125,63 @@ class Typo:
         self.backtrack_amount = 0
         self.backlog = []
 
+    QWERTY = {
+        # Number Row
+        '`': ['1', 'q'],
+        '1': ['`', '2', 'q', 'w'],
+        '2': ['1', '3', 'q', 'w', 'e'],
+        '3': ['2', '4', 'w', 'e', 'r'],
+        '4': ['3', '5', 'e', 'r', 't'],
+        '5': ['4', '6', 'r', 't', 'y'],
+        '6': ['5', '7', 't', 'y', 'u'],
+        '7': ['6', '8', 'y', 'u', 'i'],
+        '8': ['7', '9', 'u', 'i', 'o'],
+        '9': ['8', '0', 'i', 'o', 'p'],
+        '0': ['9', '-', 'o', 'p', '['],
+        '-': ['0', '=', 'p', '[', ']'],
+        '=': ['-', '[', ']'],
+
+        # Top Row
+        'q': ['`', '1', '2', 'w', 'a', 's'],
+        'w': ['1', '2', '3', 'q', 'e', 'a', 's', 'd'],
+        'e': ['2', '3', '4', 'w', 'r', 's', 'd', 'f'],
+        'r': ['3', '4', '5', 'e', 't', 'd', 'f', 'g'],
+        't': ['4', '5', '6', 'r', 'y', 'f', 'g', 'h'],
+        'y': ['5', '6', '7', 't', 'u', 'g', 'h', 'j'],
+        'u': ['6', '7', '8', 'y', 'i', 'h', 'j', 'k'],
+        'i': ['7', '8', '9', 'u', 'o', 'j', 'k', 'l'],
+        'o': ['8', '9', '0', 'i', 'p', 'k', 'l', ';'],
+        'p': ['9', '0', '-', 'o', '[', 'l', ';', "'"],
+        '[': ['0', '-', '=', 'p', ']', ';', "'"],
+        ']': ['-', '=', '[', '\\', "'"],
+        '\\': [']'],
+
+        # Home Row
+        'a': ['q', 'w', 's', 'z', 'x'],
+        's': ['q', 'w', 'e', 'a', 'd', 'z', 'x', 'c'],
+        'd': ['w', 'e', 'r', 's', 'f', 'x', 'c', 'v'],
+        'f': ['e', 'r', 't', 'd', 'g', 'c', 'v', 'b'],
+        'g': ['r', 't', 'y', 'f', 'h', 'v', 'b', 'n'],
+        'h': ['t', 'y', 'u', 'g', 'j', 'b', 'n', 'm'],
+        'j': ['y', 'u', 'i', 'h', 'k', 'n', 'm', ','],
+        'k': ['u', 'i', 'o', 'j', 'l', 'm', ',', '.'],
+        'l': ['i', 'o', 'p', 'k', ';', ',', '.', '/'],
+        ';': ['o', 'p', '[', 'l', "'", '.', '/'],
+        "'": ['p', '[', ']', ';', '/'],
+
+        # Bottom Row
+        'z': ['a', 's', 'x'],
+        'x': ['a', 's', 'd', 'z', 'c'],
+        'c': ['s', 'd', 'f', 'x', 'v'],
+        'v': ['d', 'f', 'g', 'c', 'b'],
+        'b': ['f', 'g', 'h', 'v', 'n'],
+        'n': ['g', 'h', 'j', 'b', 'm'],
+        'm': ['h', 'j', 'k', 'n', ','],
+        ',': ['j', 'k', 'l', 'm', '.'],
+        '.': ['k', 'l', ';', ',', '/'],
+        '/': ['l', ';', "'", '.']
+    }
+
 
 # --- orchestrator class ---
 class Algorithm:
@@ -128,7 +189,6 @@ class Algorithm:
     def __init__(self, page, config: Optional[Config] = None):
         self.page = page
         self.config = config or Config()
-        # Composition: Use the specialized managers
         self.timer = Delay(self.config)
         self.typos = Typo(self.config)
 
@@ -173,10 +233,9 @@ class Algorithm:
                     self._perform_correction(keyboard)
 
             console.print("[bold green]✔ Finished typing[/bold green]")
-            # TODO add: add a better finished prompt with statistics like time
+
         except KeyboardInterrupt:
             console.print("[yellow]Typing interrupted[/yellow]")
-            sys.exit(1)
         except Exception as e:
             console.print(f"[red]Error: {e}[/red]")
             raise

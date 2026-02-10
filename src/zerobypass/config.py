@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 
 from rich.console import Console
@@ -22,3 +23,10 @@ Use of this project is at your own risk. The authors and contributors accept no 
 
 If you require a version of this project for legitimate educational purposes, please contact the maintainers to discuss appropriate licensing, attribution, and oversight.
 """
+
+parser = argparse.ArgumentParser(
+    description="Proof of concept tool to bypass document replay technology (such as gpt zero).")
+parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output.")
+parser.add_argument("--browser-data-dir", "-d",
+                    help="Specify a custom browser directory to use for the Playwright browser.")
+args = parser.parse_args()

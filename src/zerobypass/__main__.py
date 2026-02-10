@@ -2,15 +2,18 @@
 # Suppress Warning
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='stopit')
-from .helpers import wait_till_exit
 # ------------------------------------------------
-
+from .config import args
+from .helpers import wait_till_exit
 from .algorithm import Algorithm
 from .helpers import can_output_graphics, get_text, handle_disclaimer, wait_for_navigate
 from .playwrighter import Playwrighter
 # ------------------------------------------------
 global pw
 def main():
+    if args.verbose:
+        pass
+        # TODO add: I dont really wanna do it right now so ill do it later
     global pw
     try:
         pw = None

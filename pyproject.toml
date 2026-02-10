@@ -1,22 +1,20 @@
 [project]
 name = "zerobypass"
-version = "1.0.0"
-description = "Add your description here"
+version = "1.0.1"
+description = "Proof of concept tool to bypass document replay technology (such as gpt zero)."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "klembord>=0.3.0",
     "pytest-playwright>=0.7.2",
-    "python-xlib>=0.26",
+    "python-xlib<=0.26",
     "rich>=14.3.2",
     "setuptools < 81"
 ]
 [project.scripts]
-zerobypass = "src.__main__:main"
+zerobypass = "zerobypass.__main__:main"
 
 [build-system]
-requires = ["setuptools>=82.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.setuptools]
-packages = ["src"]
