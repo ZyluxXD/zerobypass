@@ -1,0 +1,20 @@
+[project]
+name = "zerobypass"
+version = "1.0.3"
+description = "Proof of concept tool to bypass document replay technology (such as gpt zero)."
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "klembord>=0.3.0",
+    "pytest-playwright>=0.7.2",
+    "python-xlib<=0.26",
+    "rich>=14.3.2",
+    "setuptools < 81",
+]
+[project.scripts]
+zerobypass = "zerobypass.__main__:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
